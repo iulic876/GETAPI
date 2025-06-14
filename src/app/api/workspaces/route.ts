@@ -2,6 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { verifyToken } from "@/lib/jwt";
 
+export async function GET(req: NextRequest) {
+  const token = req.cookies.get("auth_token")?.value;
+  if (!token)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId } = verifyToken(token);
+
+  try {
+    // Get all workspaces for the user
+    const result = await pool.query(
+      `SELECT w.id, w.name, w.created_at
+       FROM workspaces w
+       JOIN workspace_members wm ON wm.workspace_id = w.id
+       WHERE wm.user_id = $1
+       ORDER BY w.created_at DESC`,
+      [userId]
+    );
+    return NextResponse.json({ workspaces: result.rows });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Failed to fetch workspaces" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   const token = req.cookies.get("auth_token")?.value;
   if (!token)

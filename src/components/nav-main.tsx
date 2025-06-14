@@ -1,6 +1,8 @@
 "use client"
 
 import { ChevronRight, type LucideIcon } from "lucide-react"
+import { useCollections } from "@/hooks/use-collections"
+import { useParams } from "next/navigation"
 
 import {
   Collapsible,
@@ -32,11 +34,32 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const params = useParams();
+  const workspaceId = params.workspaceId as string;
+  const { collections, loading } = useCollections(workspaceId);
+
+  // Transform collections into the format expected by the sidebar
+  const collectionsItem = {
+    title: "Collections",
+    url: "#",
+    icon: items[0]?.icon,
+    isActive: true,
+    items: collections.map(collection => ({
+      title: collection.name,
+      url: `/collections/${collection.id}`,
+    })),
+  };
+
+  // Replace the collections item with real data
+  const updatedItems = items.map(item => 
+    item.title === "Collections" ? collectionsItem : item
+  );
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
+        {updatedItems.map((item) => (
           <Collapsible
             key={item.title}
             asChild
