@@ -8,6 +8,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("auth_token")?.value;
 
+  console.log("MIDDLEWARE:", { pathname, token });
+
   const isApiAuth = pathname.startsWith(API_AUTH_PATH);
   const isPublic = PUBLIC_PATHS.includes(pathname);
   const isAuthenticated = !!token;
@@ -24,3 +26,7 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
+
+export const config = {
+  matcher: ["/((?!api|_next|static|favicon.ico).*)"],
+};

@@ -82,7 +82,7 @@ export default function OnboardingPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button size="lg" disabled={loading}>
-            Create Workspace
+            Create Team
           </Button>
         </DialogTrigger>
         <DialogContent>

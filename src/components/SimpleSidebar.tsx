@@ -1,5 +1,5 @@
 import * as React from "react";
-import { GalleryVerticalEnd, Minus, Plus } from "lucide-react";
+import { GalleryVerticalEnd, Minus, Plus, AudioWaveform, Command } from "lucide-react";
 
 import {
   Collapsible,
@@ -19,8 +19,34 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { TeamSwitcher } from "@/components/team-switcher";
 
-// This is sample data.
+// Only pass serializable data (no icon components)
+const workspaces = [
+  {
+    name: "Acme Inc",
+    logo: "gallery",
+    plan: "Enterprise",
+  },
+  {
+    name: "Acme Corp.",
+    logo: "audio",
+    plan: "Startup",
+  },
+  {
+    name: "Evil Corp.",
+    logo: "command",
+    plan: "Free",
+  },
+];
+
+// Map string keys to icon components
+const iconMap = {
+  gallery: GalleryVerticalEnd,
+  audio: AudioWaveform,
+  command: Command,
+};
+
 const data = {
   navMain: [
     {
@@ -165,21 +191,7 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryVerticalEnd className="size-4" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">Documentation</span>
-                  <span className="">v1.0.0</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <TeamSwitcher teams={workspaces} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
