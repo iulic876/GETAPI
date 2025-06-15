@@ -241,6 +241,7 @@ function NewDialogContent({ setOpen }: { setOpen: (open: boolean) => void }) {
       setSuccess(true);
       setRequest({ name: "", url: "", method: "GET" });
       setOpen(false);
+      refreshSidebar();
     } catch (err: any) {
       setError(err.message);
     } finally {
