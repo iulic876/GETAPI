@@ -36,8 +36,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 
 // This is sample data.
 const data = {
@@ -94,11 +94,46 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
   const [open, setOpen] = useState(false);
+  const [me, setMe] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    console.log('AppSidebar useEffect running');
+    fetch("/api/auth/me")
+      .then(res => res.json())
+      .then(data => {
+        setMe(data);
+      })
+      .catch(err => {
+        console.error('Failed to fetch /api/auth/me', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const collections = me?.collections || [];
+  const requests = me?.requests || [];
+  // You can also extract workspaces, user, etc. from me if needed
+
+  useEffect(() => {
+    const handler = () => {
+      setLoading(true);
+      fetch("/api/auth/me")
+        .then(res => res.json())
+        .then(data => {
+          setMe(data);
+          setLoading(false);
+        });
+    };
+    window.addEventListener('refreshMe', handler);
+    return () => window.removeEventListener('refreshMe', handler);
+  }, []);
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <WorkspaceSwitcher teams={data.workspaces} />
+        <WorkspaceSwitcher teams={me?.workspaces || []} />
         {state === "expanded" && (
           <div className="flex justify-between gap-4">
             <Dialog open={open} onOpenChange={setOpen}>
@@ -137,7 +172,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={[{ title: "Collections", url: "#", icon: SquareTerminal, isActive: true }]} />
+        <NavMain
+          items={[
+            {
+              title: "Collections",
+              url: "#",
+              icon: SquareTerminal,
+              isActive: true,
+            },
+          ]}
+          collections={collections}
+          requests={requests}
+        />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
@@ -149,12 +195,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 }
 
 function NewDialogContent({ setOpen }: { setOpen: (open: boolean) => void }) {
+  const { state } = useSidebar();
   const [type, setType] = useState<string>("");
   const [request, setRequest] = useState({ name: "", url: "", method: "GET" });
+  const [collectionName, setCollectionName] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const params = useParams();
+  const [workspaceId, setWorkspaceId] = useState(params.workspaceId as string | undefined);
+  const refreshSidebar = () => {
+    // Find the AppSidebar's setMe function and call it
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('refreshMe');
+      window.dispatchEvent(event);
+    }
+  };
+
+  useEffect(() => {
+    if (!workspaceId) {
+      fetch('/api/workspaces')
+        .then(res => res.json())
+        .then(data => {
+          if (data.workspaces && data.workspaces.length > 0) {
+            setWorkspaceId(data.workspaces[0].id);
+          }
+        });
+    }
+  }, [workspaceId]);
 
   const handleAddRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +241,34 @@ function NewDialogContent({ setOpen }: { setOpen: (open: boolean) => void }) {
       setSuccess(true);
       setRequest({ name: "", url: "", method: "GET" });
       setOpen(false);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddCollection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workspaceId) {
+      setError("No workspace selected.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const res = await fetch(`/api/collections/${workspaceId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: collectionName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add collection");
+      setSuccess(true);
+      setCollectionName("");
+      setOpen(false);
+      refreshSidebar();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -226,7 +323,19 @@ function NewDialogContent({ setOpen }: { setOpen: (open: boolean) => void }) {
       )}
 
       {type === "collection" && (
-        <div className="mt-2 text-muted-foreground">Collection creation form here (existing logic).</div>
+        <form className="flex flex-col gap-2 mt-2" onSubmit={handleAddCollection}>
+          <Input
+            placeholder="Collection name"
+            value={collectionName}
+            onChange={e => setCollectionName(e.target.value)}
+            required
+          />
+          <Button type="submit" disabled={loading}>
+            {loading ? "Adding..." : "Add"}
+          </Button>
+          {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
+          {success && <div className="text-green-600 text-xs mt-1">Collection added!</div>}
+        </form>
       )}
     </div>
   );

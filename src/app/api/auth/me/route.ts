@@ -23,7 +23,38 @@ export async function GET(req: NextRequest){
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      return NextResponse.json({ user });
+      // Fetch workspaces for the user
+      const workspacesResult = await pool.query(
+        `SELECT w.* FROM workspaces w
+         JOIN workspace_members wm ON wm.workspace_id = w.id
+         WHERE wm.user_id = $1`,
+        [payload.userId]
+      );
+      const workspaces = workspacesResult.rows;
+
+      // Fetch collections for these workspaces
+      const workspaceIds = workspaces.map(w => w.id);
+      let collections = [];
+      if (workspaceIds.length > 0) {
+        const collectionsResult = await pool.query(
+          `SELECT * FROM collections WHERE workspace_id = ANY($1::uuid[])`,
+          [workspaceIds]
+        );
+        collections = collectionsResult.rows;
+      }
+
+      // Fetch requests for these collections
+      const collectionIds = collections.map(c => c.id);
+      let requests = [];
+      if (collectionIds.length > 0) {
+        const requestsResult = await pool.query(
+          `SELECT * FROM requests WHERE collection_id = ANY($1::uuid[])`,
+          [collectionIds]
+        );
+        requests = requestsResult.rows;
+      }
+
+      return NextResponse.json({ user, workspaces, collections, requests });
     } catch (err) {
       return NextResponse.json(
         { error: "Invalid or expired token" },

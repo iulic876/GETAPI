@@ -27,8 +27,9 @@ export async function GET(
 
     return NextResponse.json({ collections: result.rows });
   } catch (err) {
+    console.error("GET /api/collections/[workspaceId] error:", err);
     return NextResponse.json(
-      { error: "Failed to fetch collections" },
+      { error: err instanceof Error ? err.message : "Failed to fetch collections" },
       { status: 500 }
     );
   }
@@ -73,8 +74,9 @@ export async function POST(
 
     return NextResponse.json({ collection: result.rows[0] });
   } catch (err) {
+    console.error("POST /api/collections/[workspaceId] error:", err);
     return NextResponse.json(
-      { error: "Failed to create collection" },
+      { error: err instanceof Error ? err.message : "Failed to create collection" },
       { status: 500 }
     );
   }

@@ -1,17 +1,13 @@
-import MainNavbar from "@/components/MainNavbar";
-import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col min-h-screen">
-      <MainNavbar />
-      <SidebarProvider>
-        <div className="flex flex-1">
-          <AppSidebar />
-          <main className="flex-1 p-8 bg-white">{children}</main>
-        </div>
-      </SidebarProvider>
-    </div>
+    <SidebarProvider>
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <AppSidebar />
+        <main style={{ flex: 1 }}>{children}</main>
+      </div>
+    </SidebarProvider>
   );
-}
+} 

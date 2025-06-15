@@ -1,7 +1,6 @@
 "use client"
 
 import { ChevronRight, type LucideIcon } from "lucide-react"
-import { useCollections } from "@/hooks/use-collections"
 import { useParams } from "next/navigation"
 
 import {
@@ -22,6 +21,8 @@ import {
 
 export function NavMain({
   items,
+  collections = [],
+  requests = [],
 }: {
   items: {
     title: string
@@ -31,12 +32,21 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      subItems?: { title: string; url: string }[]
     }[]
-  }[]
+  }[],
+  collections?: any[],
+  requests?: any[],
 }) {
   const params = useParams();
   const workspaceId = params.workspaceId as string;
-  const { collections, loading } = useCollections(workspaceId);
+
+  // Group requests by collection_id
+  const requestsByCollection: Record<string, any[]> = {};
+  requests.forEach((req) => {
+    if (!requestsByCollection[req.collection_id]) requestsByCollection[req.collection_id] = [];
+    requestsByCollection[req.collection_id].push(req);
+  });
 
   // Transform collections into the format expected by the sidebar
   const collectionsItem = {
@@ -47,11 +57,15 @@ export function NavMain({
     items: collections.map(collection => ({
       title: collection.name,
       url: `/collections/${collection.id}`,
+      subItems: (requestsByCollection[collection.id] || []).map((req) => ({
+        title: req.name,
+        url: `/requests/${req.id}`,
+      })),
     })),
   };
 
   // Replace the collections item with real data
-  const updatedItems = items.map(item => 
+  const updatedItems = items.map(item =>
     item.title === "Collections" ? collectionsItem : item
   );
 
@@ -59,37 +73,47 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {updatedItems.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            defaultOpen={item.isActive}
-            className="group/collapsible"
-          >
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </a>
-                      </SidebarMenuSubButton>
+        <Collapsible key="collections-group" asChild defaultOpen className="group/collapsible">
+          <SidebarMenuItem>
+            <CollapsibleTrigger asChild>
+              <SidebarMenuButton tooltip="Collections">
+                {collectionsItem.icon && <collectionsItem.icon />}
+                <span>{collectionsItem.title}</span>
+                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                {collections.map((collection) => (
+                  <Collapsible key={collection.id} asChild>
+                    <SidebarMenuSubItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuSubButton asChild>
+                          <a href={`/collections/${collection.id}`}>
+                            <span>{collection.name}</span>
+                          </a>
+                        </SidebarMenuSubButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {(requestsByCollection[collection.id] || []).map((req) => (
+                            <SidebarMenuSubItem key={req.id}>
+                              <SidebarMenuSubButton asChild>
+                                <a href={`/requests/${req.id}`}>
+                                  <span>{req.name}</span>
+                                </a>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
                     </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-        ))}
+                  </Collapsible>
+                ))}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </SidebarMenuItem>
+        </Collapsible>
       </SidebarMenu>
     </SidebarGroup>
   )
